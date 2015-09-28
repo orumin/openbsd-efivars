@@ -45,13 +45,13 @@ EFI_HANDLE		 IH, efi_bootdp = NULL;
 EFI_PHYSICAL_ADDRESS	 heap;
 EFI_LOADED_IMAGE	*loadedImage;
 UINTN			 heapsiz = 1 * 1024 * 1024;
-UINTN			 mmap_key;
 static EFI_GUID		 imgdp_guid = { 0xbc62157e, 0x3e33, 0x4fec,
 			    { 0x99, 0x20, 0x2d, 0x3b, 0x36, 0xd7, 0x50, 0xdf }};
 u_long			 efi_loadaddr;
 
 static void	 efi_heap_init(void);
 static void	 efi_memprobe_internal(void);
+static EFI_MEMORY_DESCRIPTOR*	efi_alloc_memmap(UINTN*, UINTN*, UINTN*, UINT32*);
 static void	 efi_video_init(void);
 static void	 efi_video_reset(void);
 EFI_STATUS	 efi_main(EFI_HANDLE, EFI_SYSTEM_TABLE *);
@@ -129,11 +129,20 @@ void
 efi_cleanup(void)
 {
 	EFI_STATUS	 status;
+	UINTN			 mapkey, mmsiz, siz;
+	UINT32			 mmver;
+	EFI_MEMORY_DESCRIPTOR	*mm;
 
 	efi_memprobe_internal();	/* sync the current map */
-	status = EFI_CALL(BS->ExitBootServices, IH, mmap_key);
+
+	mm = efi_alloc_memmap(&siz, &mapkey, &mmsiz, &mmver);
+
+	status = EFI_CALL(BS->ExitBootServices, IH, mapkey);
 	if (status != EFI_SUCCESS)
 		panic("ExitBootServices");
+	status = EFI_CALL(RS->SetVirtualAddressMap, siz, mmsiz, mmver, mm);
+	if (status != EFI_SUCCESS)
+		panic("SetVirtualAddressMap");
 }
 
 /***********************************************************************
@@ -259,7 +268,6 @@ efi_memprobe(void)
 static void
 efi_memprobe_internal(void)
 {
-	EFI_STATUS		 status;
 	UINTN			 mapkey, mmsiz, siz;
 	UINT32			 mmver;
 	EFI_MEMORY_DESCRIPTOR	*mm0, *mm;
@@ -269,17 +277,8 @@ efi_memprobe_internal(void)
 	cnvmem = extmem = 0;
 	bios_memmap[0].type = BIOS_MAP_END;
 
-	siz = 0;
-	status = EFI_CALL(BS->GetMemoryMap, &siz, NULL, &mapkey, &mmsiz,
-	    &mmver);
-	if (status != EFI_BUFFER_TOO_SMALL)
-		panic("cannot get the size of memory map");
-	mm0 = alloc(siz);
-	status = EFI_CALL(BS->GetMemoryMap, &siz, mm0, &mapkey, &mmsiz, &mmver);
-	if (status != EFI_SUCCESS)
-		panic("cannot get the memory map");
+	mm0 = efi_alloc_memmap(&siz, &mapkey, &mmsiz, &mmver);
 	n = siz / mmsiz;
-	mmap_key = mapkey;
 
 	for (i = 0, mm = mm0; i < n; i++, mm = NextMemoryDescriptor(mm, mmsiz)){
 		bm0.type = BIOS_MAP_END;
@@ -335,6 +334,23 @@ efi_memprobe_internal(void)
 			extmem += bm->size / 1024;
 	}
 	free(mm0, siz);
+}
+
+static EFI_MEMORY_DESCRIPTOR*
+efi_alloc_memmap(UINTN *siz, UINTN *mapkey, UINTN *mmsiz, UINT32 *mmver)
+{
+	EFI_STATUS status;
+	static EFI_MEMORY_DESCRIPTOR *mm;
+
+	*siz = 0;
+	status = EFI_CALL(BS->GetMemoryMap, siz, NULL, mapkey, mmsiz, mmver);
+	if (status != EFI_BUFFER_TOO_SMALL)
+		panic("cannot get the size of memory map");
+	mm = alloc(*siz);
+	status = EFI_CALL(BS->GetMemoryMap, siz, mm, mapkey, mmsiz, mmver);
+	if (status != EFI_SUCCESS)
+		panic("cannot get the memory map");
+	return mm;
 }
 
 /***********************************************************************
@@ -493,6 +509,13 @@ efi_makebootargs(void)
 				*info;
 
 	memset(&ei, 0, sizeof(ei));
+	/*
+	 * RuntimeServices
+	 */
+	ei.efi_get_variable = RS->GetVariable;
+
+	printf( "GetVariable: 0x%llx\n", ei.efi_get_variable );
+
 	/*
 	 * ACPI, BIOS configuration table
 	 */

@@ -31,6 +31,10 @@
 #ifndef _MACHINE_BIOSVAR_H_
 #define _MACHINE_BIOSVAR_H_
 
+#include<machine/efi/efi.h>
+#include<machine/efi/efiapi.h>
+#include<machine/efi/efiprot.h>
+
 	/* some boxes put apm data seg in the 2nd page */
 #define	BOOTARG_OFF	(PAGE_SIZE * 2)
 #define	BOOTARG_LEN	(PAGE_SIZE * 1)
@@ -203,6 +207,7 @@ typedef struct _bios_efiinfo {
 	uint32_t	fb_green_mask;
 	uint32_t	fb_blue_mask;
 	uint32_t	fb_reserved_mask;
+	EFI_GET_VARIABLE	efi_get_variable;
 } __packed bios_efiinfo_t;
 
 #if defined(_KERNEL) || defined (_STANDALONE)

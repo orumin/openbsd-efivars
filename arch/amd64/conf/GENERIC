@@ -606,6 +606,7 @@ owctr*	at onewire?		# Counter device
 
 pseudo-device	pctr		1
 pseudo-device	nvram		1
+pseudo-device	efivars		1
 pseudo-device	hotplug		1	# devices hot plugging
 
 # mouse & keyboard multiplexor pseudo-devices

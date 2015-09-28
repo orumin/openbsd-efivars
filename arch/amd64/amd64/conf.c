@@ -152,6 +152,9 @@ cdev_decl(cztty);
 #include "radio.h"
 #include "nvram.h"
 cdev_decl(nvram);
+#define efivarspoll seltrue
+#include "efivars.h"
+cdev_decl(efivars);
 #include "drm.h"
 cdev_decl(drm);
 
@@ -279,6 +282,7 @@ struct cdevsw	cdevsw[] =
 	cdev_disk_init(1,diskmap),	/* 90: disk mapper */
 	cdev_pppx_init(NPPPX,pppx),     /* 91: pppx */
 	cdev_fuse_init(NFUSE,fuse),	/* 92: fuse */
+	cdev_ocis_init(NEFIVARS, efivars), /* 93: efivars */
 };
 int	nchrdev = nitems(cdevsw);
 

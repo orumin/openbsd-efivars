@@ -2,7 +2,8 @@
 
 .if ${MACHINE} == "amd64"
 
-SUBDIR=		bootx64 bootia32
+#SUBDIR=		bootx64 bootia32
+SUBDIR=		bootx64
 
 .endif
 
