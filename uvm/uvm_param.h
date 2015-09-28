@@ -73,8 +73,12 @@
 #include <machine/vmparam.h>
 
 typedef int	boolean_t;
+#ifndef TRUE
 #define	TRUE	1
+#endif
+#ifndef FALSE
 #define FALSE	0
+#endif
 
 #define	DEFAULT_PAGE_SIZE	4096
 
