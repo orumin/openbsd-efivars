@@ -140,9 +140,9 @@ efi_cleanup(void)
 	status = EFI_CALL(BS->ExitBootServices, IH, mapkey);
 	if (status != EFI_SUCCESS)
 		panic("ExitBootServices");
-	status = EFI_CALL(RS->SetVirtualAddressMap, siz, mmsiz, mmver, mm);
-	if (status != EFI_SUCCESS)
-		panic("SetVirtualAddressMap");
+///	status = EFI_CALL(RS->SetVirtualAddressMap, siz, mmsiz, mmver, mm);
+///	if (status != EFI_SUCCESS)
+///		panic("SetVirtualAddressMap");
 }
 
 /***********************************************************************
